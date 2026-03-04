@@ -1,98 +1,736 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Colors } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BarChart } from 'react-native-gifted-charts';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const { width } = Dimensions.get('window');
 
-export default function HomeScreen() {
+export default function DashboardScreen() {
+  const [activeTab, setActiveTab] = useState('Overview');
+  const [isSupplyBlocked, setIsSupplyBlocked] = useState(false);
+  const [isSecondaryBlocked, setIsSecondaryBlocked] = useState(false);
+
+  // Reporting Form State
+  const [reportDescription, setReportDescription] = useState('');
+  const [reportSeverity, setReportSeverity] = useState('MEDIUM');
+  const [reportLocation, setReportLocation] = useState('Home - Main System');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const chartData = [
+    { value: 120, label: 'Mon' },
+    { value: 145, label: 'Tue' },
+    { value: 130, label: 'Wed' },
+    { value: 155, label: 'Thu' },
+    { value: 140, label: 'Fri' },
+    { value: 165, label: 'Sat', frontColor: Colors.primary }, // Highlight today
+    { value: 0, label: 'Sun' },
+  ];
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.container}>
+      {/* Header Block */}
+      {/* Minimalist Header */}
+      <View style={styles.headerTop}>
+        <TouchableOpacity style={styles.menuButton}>
+          <Ionicons name="menu-outline" size={28} color={Colors.secondary} />
+        </TouchableOpacity>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <Text style={styles.logoText}>
+          CashWater<Text style={styles.logoDot}>.</Text>
+        </Text>
+
+        <TouchableOpacity style={styles.searchButton}>
+          <Ionicons name="search-outline" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Pill Navigation */}
+      <View style={styles.pillContainer}>
+        {['Overview', 'Tasks', 'Alerts', 'Report'].map((tab) => (
+          <TouchableOpacity
+            key={tab}
+            style={activeTab === tab ? styles.pillActive : styles.pillInactive}
+            onPress={() => setActiveTab(tab)}
+          >
+            <Text style={activeTab === tab ? styles.pillActiveText : styles.pillInactiveText}>
+              {tab}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Hero Card ("Your Dashboard") */}
+        <View style={styles.section}>
+          <Text style={styles.heroTitle}>Your Dashboard</Text>
+          <View style={styles.darkCard}>
+            <View style={styles.darkCardHeader}>
+              <View>
+                <Text style={styles.darkCardSubtitle}>Total Consumption</Text>
+                <Text style={styles.darkCardValue}>
+                  <Text style={styles.darkCardAccent}>165</Text> Litres
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.darkCardSubtitle}>Alerts</Text>
+                <Text style={styles.darkCardSubvalue}>2</Text>
+              </View>
+              <View>
+                <Text style={styles.darkCardSubtitle}>Devices</Text>
+                <Text style={styles.darkCardSubvalue}>3</Text>
+              </View>
+              <Ionicons name="scan-outline" size={20} color={Colors.primary} />
+            </View>
+
+            <View style={styles.darkCardActions}>
+              <TouchableOpacity style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>Pay</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.actionButton, styles.actionButtonActive]}>
+                <Text style={[styles.actionButtonText, styles.actionButtonTextActive]}>View</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <Text style={styles.actionButtonText}>Manage</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Conditional Content based on Active Tab */}
+        {activeTab === 'Overview' && (
+          <View style={styles.section}>
+            <Text style={styles.chartTitle}>Weekly Overview</Text>
+            <View style={styles.chartCard}>
+              <BarChart
+                data={chartData}
+                barWidth={18}
+                spacing={25}
+                roundedTop
+                roundedBottom
+                hideRules
+                hideYAxisText
+                yAxisThickness={0}
+                xAxisThickness={0}
+                xAxisLabelTextStyle={{ color: '#A0A0A0', fontSize: 11, fontWeight: '500' }}
+                noOfSections={4}
+                maxValue={200}
+                frontColor={'#E8EEF5'}
+                isAnimated
+              />
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'Alerts' && (
+          <View style={styles.section}>
+            <Text style={styles.gridTitle}>Security & Alerts</Text>
+
+            {/* Leakage Alert Card */}
+            <View style={styles.alertCard}>
+              <View style={styles.alertIconBox}>
+                <Ionicons name="warning" size={24} color="#EF4444" />
+              </View>
+              <View style={styles.alertInfo}>
+                <Text style={styles.alertTitle}>High Probability of Leakage</Text>
+                <Text style={styles.alertDesc}>Unusual continuous water flow detected in the Kitchen System over the last 3 hours.</Text>
+                <Text style={styles.alertTime}>Just now</Text>
+              </View>
+            </View>
+
+            {/* Warning Alert Card */}
+            <View style={[styles.alertCard, { opacity: 0.8 }]}>
+              <View style={[styles.alertIconBox, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="water" size={24} color="#F59E0B" />
+              </View>
+              <View style={styles.alertInfo}>
+                <Text style={styles.alertTitle}>Usage Threshold Warning</Text>
+                <Text style={styles.alertDesc}>You are approaching your daily limit preset. 90% consumed.</Text>
+                <Text style={styles.alertTime}>2 hours ago</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {activeTab === 'Report' && (
+          <View style={styles.section}>
+            <Text style={styles.gridTitle}>Report a Problem</Text>
+
+            {!showSuccess ? (
+              <View style={styles.reportForm}>
+                <Text style={styles.inputLabel}>What is the issue?</Text>
+                <View style={styles.severityPicker}>
+                  {['LOW', 'MEDIUM', 'HIGH'].map((s) => (
+                    <TouchableOpacity
+                      key={s}
+                      style={[
+                        styles.severityButton,
+                        reportSeverity === s && styles.severityButtonActive,
+                        reportSeverity === s && s === 'HIGH' && { backgroundColor: '#EF4444' },
+                        reportSeverity === s && s === 'MEDIUM' && { backgroundColor: '#F59E0B' },
+                        reportSeverity === s && s === 'LOW' && { backgroundColor: Colors.primary },
+                      ]}
+                      onPress={() => setReportSeverity(s)}
+                    >
+                      <Text style={[styles.severityText, reportSeverity === s && { color: '#FFF' }]}>{s}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabel}>Location</Text>
+                <View style={styles.inputWrapper}>
+                  <Ionicons name="location-outline" size={20} color="#888" style={styles.inputIcon} />
+                  <Text style={styles.inputText}>{reportLocation}</Text>
+                </View>
+
+                <Text style={styles.inputLabel}>Description</Text>
+                <View style={[styles.inputWrapper, { alignItems: 'flex-start', paddingTop: 12 }]}>
+                  <Ionicons name="chatbubble-outline" size={20} color="#888" style={styles.inputIcon} />
+                  <Text style={[styles.inputText, !reportDescription && { color: '#AAA' }]}>
+                    {reportDescription || "Describe the leak or problem..."}
+                  </Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={() => {
+                    setIsSubmitting(true);
+                    setTimeout(() => {
+                      setIsSubmitting(false);
+                      setShowSuccess(true);
+                    }, 1500);
+                  }}
+                >
+                  <Text style={styles.submitButtonText}>{isSubmitting ? 'Sending...' : 'Send Report to WASAC'}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.successView}>
+                <View style={styles.successIconBox}>
+                  <Ionicons name="checkmark-circle" size={50} color="#10B981" />
+                </View>
+                <Text style={styles.successTitle}>Report Sent Successfully</Text>
+                <Text style={styles.successDesc}>WASAC administrators have been notified. A technician will be dispatched if necessary.</Text>
+                <TouchableOpacity
+                  style={styles.backButton}
+                  onPress={() => {
+                    setShowSuccess(false);
+                    setActiveTab('Overview');
+                  }}
+                >
+                  <Text style={styles.backButtonText}>Back to Dashboard</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Grid Section ("Your Devices") */}
+        <View style={styles.section}>
+          <Text style={styles.gridTitle}>Your Devices</Text>
+          <View style={styles.devicesGrid}>
+
+            {/* Device Card 1 */}
+            <View style={styles.gridCard}>
+              <View style={styles.gridCardHeader}>
+                <Ionicons name={isSupplyBlocked ? "water-outline" : "water"} size={26} color={isSupplyBlocked ? '#EF4444' : Colors.primary} />
+                <View style={[styles.trendBadge, isSupplyBlocked && { backgroundColor: '#FEF2F2' }]}>
+                  <Text style={[styles.trendTextPositive, isSupplyBlocked && { color: '#EF4444' }]}>
+                    {isSupplyBlocked ? 'Blocked' : 'Active'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.gridCardName}>Main Valve</Text>
+              <Text style={styles.gridCardSub}>Kitchen System</Text>
+              <TouchableOpacity
+                style={isSupplyBlocked ? styles.supplyButtonUnblock : styles.supplyButtonBlock}
+                onPress={() => setIsSupplyBlocked(!isSupplyBlocked)}
+              >
+                <Text style={isSupplyBlocked ? styles.supplyButtonUnblockText : styles.supplyButtonBlockText}>
+                  {isSupplyBlocked ? 'Unblock Supply' : 'Block Supply'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Device Card 2 */}
+            <View style={styles.gridCard}>
+              <View style={styles.gridCardHeader}>
+                <Ionicons name={isSecondaryBlocked ? "flower-outline" : "flower"} size={26} color={isSecondaryBlocked ? '#EF4444' : Colors.primary} />
+                <View style={[styles.trendBadge, isSecondaryBlocked && { backgroundColor: '#FEF2F2' }]}>
+                  <Text style={[styles.trendTextPositive, isSecondaryBlocked && { color: '#EF4444' }]}>
+                    {isSecondaryBlocked ? 'Blocked' : 'Active'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.gridCardName}>Sprinkler</Text>
+              <Text style={styles.gridCardSub}>Garden System</Text>
+              <TouchableOpacity
+                style={isSecondaryBlocked ? styles.supplyButtonUnblock : styles.supplyButtonBlock}
+                onPress={() => setIsSecondaryBlocked(!isSecondaryBlocked)}
+              >
+                <Text style={isSecondaryBlocked ? styles.supplyButtonUnblockText : styles.supplyButtonBlockText}>
+                  {isSecondaryBlocked ? 'Unblock Supply' : 'Block Supply'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Add Device Card */}
+            <TouchableOpacity style={styles.gridCardAdd}>
+              <Text style={styles.gridCardAddText}>Add Device</Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F9F9F9', // Ultra clean off-white
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    backgroundColor: '#F9F9F9',
+  },
+  menuButton: {
+    padding: 5,
+  },
+  searchButton: {
+    padding: 5,
+  },
+  logoText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1E1E24',
+    letterSpacing: -0.5,
+  },
+  logoDot: {
+    color: Colors.primary, // #396cb8 dot
+  },
+  pillContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#EEEEEE',
+    borderRadius: 30,
+    marginHorizontal: 20,
+    padding: 3,
+    marginBottom: 10,
+  },
+  pillActive: {
+    backgroundColor: '#2D2D35', // Deep slate active pill
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    flex: 1,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  pillActiveText: {
+    color: Colors.white,
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  pillInactive: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    flex: 1,
+    alignItems: 'center',
+  },
+  pillInactiveText: {
+    color: '#888',
+    fontWeight: '500',
+    fontSize: 12,
+  },
+  heroTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E1E24',
+    marginBottom: 10,
+    marginHorizontal: 5,
+  },
+  darkCard: {
+    backgroundColor: '#1E1E24',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  darkCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  darkCardSubtitle: {
+    color: '#888',
+    fontSize: 10,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  darkCardValue: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  darkCardAccent: {
+    color: Colors.primary, // #396cb8
+    fontSize: 20,
+  },
+  darkCardSubvalue: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  darkCardActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  actionButton: {
+    flex: 1,
+    backgroundColor: '#2D2D35',
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  actionButtonActive: {
+    backgroundColor: '#353540',
+    borderWidth: 1,
+    borderColor: '#444455',
+  },
+  actionButtonText: {
+    color: '#888',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  actionButtonTextActive: {
+    color: '#FFF',
+  },
+  scrollContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E1E24',
+    marginBottom: 10,
+    marginHorizontal: 5,
+  },
+  chartCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    paddingBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 3,
+    alignItems: 'center',
+  },
+  gridTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E1E24',
+    marginBottom: 10,
+    marginHorizontal: 5,
+    marginTop: 5,
+  },
+  devicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  gridCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 4,
+  },
+  gridCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  trendBadge: {
+    backgroundColor: '#F9F9F9',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  trendTextPositive: {
+    color: '#10B981',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  trendTextNegative: {
+    color: '#EF4444',
+    fontSize: 9,
+    fontWeight: '700',
+  },
+  gridCardName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1E24',
+    marginBottom: 3,
+  },
+  gridCardSub: {
+    fontSize: 11,
+    color: '#888',
+    fontWeight: '500',
+  },
+  gridCardAdd: {
+    width: '48%',
+    backgroundColor: '#F5F5FA',
+    borderRadius: 16,
+    padding: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 130,
+    marginBottom: 4,
+  },
+  gridCardAddText: {
+    color: Colors.primary,
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  supplyButtonBlock: {
+    marginTop: 10,
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  supplyButtonBlockText: {
+    color: '#EF4444',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  supplyButtonUnblock: {
+    marginTop: 10,
+    backgroundColor: '#F0FDF4',
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  supplyButtonUnblockText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  stepContainer: {
-    gap: 8,
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#10B981',
+    fontWeight: '600',
+  },
+  alertCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+    alignItems: 'flex-start',
+  },
+  alertIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  alertInfo: {
+    flex: 1,
+  },
+  alertTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E1E24',
+    marginBottom: 4,
+  },
+  alertDesc: {
+    fontSize: 12,
+    color: '#666',
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  alertTime: {
+    fontSize: 11,
+    color: '#A0A0A0',
+    fontWeight: '500',
+  },
+  reportForm: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E1E24',
     marginBottom: 8,
+    marginTop: 15,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  severityPicker: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  severityButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#F5F5FA',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  severityButtonActive: {
+    borderColor: 'transparent',
+  },
+  severityText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#888',
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5FA',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  inputText: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 25,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  successView: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  successIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  successTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1E1E24',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  successDesc: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 25,
+  },
+  backButton: {
+    backgroundColor: '#F5F5FA',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderWidth: 1,
+    borderColor: '#EFEFEF',
+  },
+  backButtonText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

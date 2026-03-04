@@ -3,18 +3,84 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import * as Location from 'expo-location';
 import Animated, { FadeInUp, SlideInDown } from 'react-native-reanimated';
+import { endpoints } from '@/constants/api';
 
 export default function EnterCodeScreen() {
     const router = useRouter();
-    const [code, setCode] = useState('');
+    const params = useLocalSearchParams();
 
-    const handleVerify = () => {
-        console.log('Verifying code:', code);
-        router.replace('/(tabs)');
+    // Initialize code with prefilledCode if provided
+    const [code, setCode] = useState(
+        typeof params.prefilledCode === 'string' ? params.prefilledCode : ''
+    );
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleVerify = async () => {
+        if (!code) {
+            Alert.alert('Error', 'Please enter a device code.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            console.log('Requesting location permissions...');
+            const { status } = await Location.requestForegroundPermissionsAsync();
+
+            let latitude, longitude;
+            if (status === 'granted') {
+                const loc = await Location.getCurrentPositionAsync({});
+                latitude = loc.coords.latitude;
+                longitude = loc.coords.longitude;
+                console.log('Location captured:', latitude, longitude);
+            } else {
+                Alert.alert(
+                    'Location Permission Denied',
+                    'We need your location to register the device to your current area. Please enable it in settings.'
+                );
+                setIsLoading(false);
+                return;
+            }
+
+            console.log('Registering device with code:', code);
+
+            // In a real app, you'd get the JWT token from storage
+            const token = 'dummy_user_token';
+
+            const response = await fetch(endpoints.registerDevice, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    deviceId: code,
+                    name: 'My Smart Meter',
+                    location: 'Home',
+                    latitude,
+                    longitude
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Alert.alert('Success', 'Device connected successfully!');
+                router.replace('/(tabs)');
+            } else {
+                Alert.alert('Registration Failed', data.message || 'Could not register device');
+            }
+        } catch (error) {
+            console.error('Registration error calling:', endpoints.registerDevice, error);
+            Alert.alert('Error', `Connection failed to ${endpoints.registerDevice}. Check your network.`);
+            router.replace('/(tabs)');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -52,10 +118,12 @@ export default function EnterCodeScreen() {
                         />
 
                         <Button
-                            title="Verify & Connect"
+                            title={isLoading ? "Connecting..." : "Verify & Connect"}
                             onPress={handleVerify}
+                            disabled={isLoading}
                             style={styles.verifyButton}
                         />
+                        {isLoading && <ActivityIndicator style={{ marginTop: 20 }} color={Colors.primary} />}
                     </View>
                 </Animated.View>
             </SafeAreaView>
@@ -72,31 +140,31 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingHorizontal: 25,
-        paddingBottom: 35,
-        paddingTop: Platform.OS === 'android' ? 60 : 40,
-        minHeight: 250,
+        paddingHorizontal: 20,
+        paddingBottom: 20,
+        paddingTop: Platform.OS === 'android' ? 40 : 20,
+        minHeight: 180,
         justifyContent: 'center',
     },
     iconButton: {
-        marginBottom: 15,
+        marginBottom: 10,
         width: 40,
         height: 40,
         justifyContent: 'center',
     },
     headerContent: {
-        marginBottom: 10,
+        marginBottom: 5,
         alignItems: 'center',
     },
     title: {
-        fontSize: 34,
+        fontSize: 28,
         fontWeight: '900',
         color: Colors.white,
         marginBottom: 5,
         textAlign: 'center',
     },
     subtitle: {
-        fontSize: 15,
+        fontSize: 14,
         color: Colors.white,
         opacity: 0.8,
         textAlign: 'center',
@@ -104,34 +172,34 @@ const styles = StyleSheet.create({
     contentCard: {
         flex: 1,
         backgroundColor: Colors.white,
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
-        paddingHorizontal: 30,
-        paddingTop: 50, // Increased padding to push content down
-        justifyContent: 'center', // Center vertically
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        paddingHorizontal: 25,
+        paddingTop: 30,
+        justifyContent: 'center',
     },
     form: {
         marginTop: 0,
-        paddingBottom: 100, // Add space at bottom to push content up towards center
+        paddingBottom: 40,
     },
     infoBox: {
         flexDirection: 'row',
         backgroundColor: '#F0F7FF',
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 25,
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 20,
         alignItems: 'center',
-        gap: 10,
+        gap: 8,
     },
     infoText: {
         flex: 1,
-        fontSize: 13,
+        fontSize: 12,
         color: '#444',
-        lineHeight: 18,
+        lineHeight: 16,
     },
     verifyButton: {
-        marginTop: 20,
-        height: 55,
-        borderRadius: 28,
+        marginTop: 15,
+        height: 50,
+        borderRadius: 25,
     },
 });

@@ -26,11 +26,18 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     input: {
-        backgroundColor: Colors.gray,
-        height: 50,
-        borderRadius: 25,
-        paddingHorizontal: 20,
+        backgroundColor: Colors.white,
+        height: 55, // slightly taller for a premium feel
+        borderRadius: 28,
+        paddingHorizontal: 22,
         fontSize: 16,
         color: Colors.secondary,
+        borderWidth: 1,
+        borderColor: '#EFEFEF',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+        elevation: 2,
     },
 });

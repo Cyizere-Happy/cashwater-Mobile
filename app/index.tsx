@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
         letterSpacing: -0.5,
     },
     logoTextBold: {
-        fontWeight: '900',
+        fontWeight: '800', // slightly less heavy for a cleaner look
     },
     footer: {
         position: 'absolute',
@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: Colors.primary,
         letterSpacing: 3,
-        fontWeight: '600',
-        opacity: 0.6,
+        fontWeight: '500', // more subtle weight
+        opacity: 0.5, // softer opacity
     },
 });

@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
             <View style={styles.topSection}>
                 <Animated.View entering={FadeInDown.duration(1000)} style={styles.logoWrapper}>
                     <View style={styles.iconCircleSmall}>
-                        <Ionicons name="water" size={40} color={Colors.white} />
+                        <Ionicons name="water" size={32} color={Colors.white} />
                     </View>
                     <Text style={styles.logoText}>
                         Cash<Text style={styles.logoTextBold}>Water</Text>
@@ -43,13 +43,13 @@ export default function WelcomeScreen() {
 
                 <View style={styles.buttonContainer}>
                     <Button
-                        title="Sign In"
-                        onPress={handleSignIn}
+                        title="Connect with QR"
+                        onPress={() => router.push('/scan-qr')}
                         variant="primary"
                         style={styles.button}
                     />
                     <Button
-                        title="Enter Code"
+                        title="Enter Code manually"
                         onPress={handleEnterCode}
                         variant="secondary"
                         style={styles.button}
@@ -69,62 +69,63 @@ const styles = StyleSheet.create({
         flex: 3,
         justifyContent: 'center',
         alignItems: 'center',
+        paddingBottom: 20,
     },
     logoWrapper: {
         alignItems: 'center',
     },
     iconCircleSmall: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 70,
+        height: 70,
+        borderRadius: 35,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 15,
         elevation: 5,
         shadowColor: Colors.primary,
-        shadowOffset: { width: 0, height: 5 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
-        shadowRadius: 10,
+        shadowRadius: 8,
     },
     logoText: {
-        fontSize: 32,
+        fontSize: 28,
         color: Colors.primary,
         letterSpacing: -0.5,
     },
     logoTextBold: {
-        fontWeight: '900',
+        fontWeight: '800',
     },
     bottomSection: {
         flex: 2,
         backgroundColor: Colors.primary,
-        borderTopLeftRadius: 35,
-        borderTopRightRadius: 35,
-        padding: 30,
-        paddingTop: 40,
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        padding: 25,
+        paddingTop: 30,
         justifyContent: 'center',
     },
     welcomeText: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 'bold',
         color: Colors.white,
-        marginBottom: 10,
+        marginBottom: 5,
     },
     descriptionText: {
-        fontSize: 16,
+        fontSize: 13,
         color: Colors.white,
-        opacity: 0.9,
-        marginBottom: 35,
-        lineHeight: 24,
+        opacity: 0.85,
+        marginBottom: 25,
+        lineHeight: 20,
     },
     buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 15,
+        flexDirection: 'column',
+        justifyContent: 'center',
+        gap: 10,
     },
     button: {
-        flex: 1,
-        height: 55,
-        borderRadius: 28,
+        width: '100%',
+        height: 50,
+        borderRadius: 25,
     },
 });

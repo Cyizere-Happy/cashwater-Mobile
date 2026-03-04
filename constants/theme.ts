@@ -9,7 +9,7 @@ const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
 
 export const Colors = {
-  primary: '#284e85', // Blue from design update
+  primary: '#396cb8', // Blue from dashboard brand update
   secondary: '#000000', // Black
   white: '#FFFFFF',
   gray: '#F5F5F5',

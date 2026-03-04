@@ -5,16 +5,46 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
 import Animated, { FadeInUp, SlideInDown } from 'react-native-reanimated';
+import { endpoints } from '@/constants/api';
 
 export default function SignInScreen() {
     const router = useRouter();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSignIn = () => {
-        router.replace('/(tabs)');
+    const handleSignIn = async () => {
+        if (!username || !password) {
+            Alert.alert('Error', 'Please enter both username and password.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await fetch(endpoints.login, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: username, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.access_token) {
+                // In a real app, use SecureStore to save data.access_token
+                console.log('Login successful');
+                router.replace('/(tabs)');
+            } else {
+                Alert.alert('Login Failed', data.message || 'Invalid credentials');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            Alert.alert('Error', 'Could not connect to the server. Assuming demo mode.');
+            router.replace('/(tabs)'); // Fallback for demo
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -59,10 +89,12 @@ export default function SignInScreen() {
                             </TouchableOpacity>
 
                             <Button
-                                title="Sign In"
+                                title={isLoading ? "Signing In..." : "Sign In"}
                                 onPress={handleSignIn}
+                                disabled={isLoading}
                                 style={styles.signInButton}
                             />
+                            {isLoading && <ActivityIndicator style={{ marginTop: 10 }} color={Colors.primary} />}
                         </View>
 
                         <View style={styles.socialContainer}>
@@ -140,7 +172,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 35,
         borderTopRightRadius: 35,
         paddingHorizontal: 30,
-        paddingTop: 50, // Increased to push content down slightly
+        paddingTop: 45, // Slightly reduced to balance top spacing
     },
     scrollContent: {
         flexGrow: 1,
@@ -148,7 +180,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center', // Center content vertically in the scroll view
     },
     form: {
-        marginBottom: 35,
+        marginBottom: 30,
     },
     forgotPasswordContainer: {
         alignItems: 'flex-end',

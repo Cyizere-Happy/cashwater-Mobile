@@ -10,6 +10,7 @@ interface ButtonProps {
     style?: ViewStyle;
     textStyle?: TextStyle;
     icon?: React.ReactNode;
+    disabled?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -18,7 +19,8 @@ export const Button: React.FC<ButtonProps> = ({
     variant = 'primary',
     style,
     textStyle,
-    icon
+    icon,
+    disabled = false
 }) => {
     const getBackgroundColor = () => {
         switch (variant) {
@@ -44,10 +46,12 @@ export const Button: React.FC<ButtonProps> = ({
                 styles.container,
                 { backgroundColor: getBackgroundColor() },
                 variant === 'outline' && styles.outline,
+                disabled && styles.disabled,
                 style
             ]}
-            onPress={onPress}
-            activeOpacity={0.8}
+            onPress={disabled ? undefined : onPress}
+            activeOpacity={disabled ? 1 : 0.8}
+            disabled={disabled}
         >
             {icon}
             <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
@@ -75,5 +79,8 @@ const styles = StyleSheet.create({
     outline: {
         borderWidth: 1,
         borderColor: '#E0E0E0',
+    },
+    disabled: {
+        opacity: 0.5,
     }
 });
