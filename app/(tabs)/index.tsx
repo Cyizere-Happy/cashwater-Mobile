@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-gifted-charts';
 import * as Location from 'expo-location';
 import { endpoints } from '@/constants/api';
+import { useMQTT } from '@/hooks/useMQTT';
 
 const { width } = Dimensions.get('window');
 
@@ -14,9 +15,18 @@ const { width } = Dimensions.get('window');
 const REGISTERED_DEVICE_ID = 'CW-DEMO01';
 
 export default function DashboardScreen() {
+  const {
+    isConnected,
+    flowRate,
+    totalVolume,
+    valveState,
+    leakDetected,
+    anomalyScore,
+    sendValveCommand,
+    sendAnomalyScan,
+  } = useMQTT();
+
   const [activeTab, setActiveTab] = useState('Overview');
-  const [isSupplyBlocked, setIsSupplyBlocked] = useState(false);
-  const [isSecondaryBlocked, setIsSecondaryBlocked] = useState(false);
 
   // Reporting Form State
   const [reportDescription, setReportDescription] = useState('');
@@ -30,14 +40,13 @@ export default function DashboardScreen() {
     { value: 130, label: 'Wed' },
     { value: 155, label: 'Thu' },
     { value: 140, label: 'Fri' },
-    { value: 165, label: 'Sat', frontColor: Colors.primary }, // Highlight today
+    { value: totalVolume || 0, label: 'Sat', frontColor: Colors.primary }, // Highlight today with live data
     { value: 0, label: 'Sun' },
   ];
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header Block */}
-      {/* Minimalist Header */}
       <View style={styles.headerTop}>
         <TouchableOpacity style={styles.menuButton}>
           <Ionicons name="menu-outline" size={28} color={Colors.secondary} />
@@ -47,9 +56,12 @@ export default function DashboardScreen() {
           CashWater<Text style={styles.logoDot}>.</Text>
         </Text>
 
-        <TouchableOpacity style={styles.searchButton}>
-          <Ionicons name="search-outline" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={[styles.statusDot, { backgroundColor: isConnected ? '#10B981' : '#EF4444' }]} />
+          <TouchableOpacity style={styles.searchButton}>
+            <Ionicons name="search-outline" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Pill Navigation */}
@@ -76,18 +88,22 @@ export default function DashboardScreen() {
               <View>
                 <Text style={styles.darkCardSubtitle}>Total Consumption</Text>
                 <Text style={styles.darkCardValue}>
-                  <Text style={styles.darkCardAccent}>165</Text> Litres
+                  <Text style={styles.darkCardAccent}>{totalVolume?.toFixed(1) || '0.0'}</Text> Litres
                 </Text>
               </View>
               <View>
-                <Text style={styles.darkCardSubtitle}>Alerts</Text>
-                <Text style={styles.darkCardSubvalue}>2</Text>
+                <Text style={styles.darkCardSubtitle}>Rate</Text>
+                <Text style={styles.darkCardSubvalue}>{flowRate?.toFixed(1) || '0.0'} L/min</Text>
               </View>
               <View>
-                <Text style={styles.darkCardSubtitle}>Devices</Text>
-                <Text style={styles.darkCardSubvalue}>3</Text>
+                <Text style={styles.darkCardSubtitle}>Status</Text>
+                <Text style={[styles.darkCardSubvalue, { color: leakDetected ? '#EF4444' : '#10B981' }]}>
+                  {leakDetected ? 'LEAK' : valveState || 'OPEN'}
+                </Text>
               </View>
-              <Ionicons name="scan-outline" size={20} color={Colors.primary} />
+              <TouchableOpacity onPress={() => sendAnomalyScan('TRIGGER')}>
+                <Ionicons name="scan-outline" size={20} color={anomalyScore > 0 ? '#EF4444' : Colors.primary} />
+              </TouchableOpacity>
             </View>
 
             <View style={styles.darkCardActions}>
@@ -133,19 +149,28 @@ export default function DashboardScreen() {
           <View style={styles.section}>
             <Text style={styles.gridTitle}>Security & Alerts</Text>
 
-            {/* Leakage Alert Card */}
-            <View style={styles.alertCard}>
-              <View style={styles.alertIconBox}>
-                <Ionicons name="warning" size={24} color="#EF4444" />
+            {/* Real-time Leak Alert if detected by firmware */}
+            {leakDetected && (
+              <View style={styles.alertCard}>
+                <View style={styles.alertIconBox}>
+                  <Ionicons name="warning" size={24} color="#EF4444" />
+                </View>
+                <View style={styles.alertInfo}>
+                  <Text style={styles.alertTitle}>Hardware Anomaly Detected</Text>
+                  <Text style={styles.alertDesc}>
+                    Critical leak probability ({anomalyScore}%). Unusual flow patterns detected by the ESP32.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.supplyButtonBlock, { marginTop: 8 }]}
+                    onPress={() => sendAnomalyScan('ACKNOWLEDGE')}
+                  >
+                    <Text style={styles.supplyButtonBlockText}>Acknowledge & Clear</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.alertInfo}>
-                <Text style={styles.alertTitle}>High Probability of Leakage</Text>
-                <Text style={styles.alertDesc}>Unusual continuous water flow detected in the Kitchen System over the last 3 hours.</Text>
-                <Text style={styles.alertTime}>Just now</Text>
-              </View>
-            </View>
+            )}
 
-            {/* Warning Alert Card */}
+            {/* Standard notification cards (static placeholder) */}
             <View style={[styles.alertCard, { opacity: 0.8 }]}>
               <View style={[styles.alertIconBox, { backgroundColor: '#FFFBEB' }]}>
                 <Ionicons name="water" size={24} color="#F59E0B" />
@@ -295,47 +320,40 @@ export default function DashboardScreen() {
           <Text style={styles.gridTitle}>Your Devices</Text>
           <View style={styles.devicesGrid}>
 
-            {/* Device Card 1 */}
+            {/* Device Card 1 (Connected to Hardware) */}
             <View style={styles.gridCard}>
               <View style={styles.gridCardHeader}>
-                <Ionicons name={isSupplyBlocked ? "water-outline" : "water"} size={26} color={isSupplyBlocked ? '#EF4444' : Colors.primary} />
-                <View style={[styles.trendBadge, isSupplyBlocked && { backgroundColor: '#FEF2F2' }]}>
-                  <Text style={[styles.trendTextPositive, isSupplyBlocked && { color: '#EF4444' }]}>
-                    {isSupplyBlocked ? 'Blocked' : 'Active'}
+                <Ionicons name={valveState === 'BLOCKED' ? "water-outline" : "water"} size={26} color={valveState === 'BLOCKED' ? '#EF4444' : Colors.primary} />
+                <View style={[styles.trendBadge, valveState === 'BLOCKED' && { backgroundColor: '#FEF2F2' }]}>
+                  <Text style={[styles.trendTextPositive, valveState === 'BLOCKED' && { color: '#EF4444' }]}>
+                    {valveState || 'Active'}
                   </Text>
                 </View>
               </View>
               <Text style={styles.gridCardName}>Main Valve</Text>
               <Text style={styles.gridCardSub}>Kitchen System</Text>
               <TouchableOpacity
-                style={isSupplyBlocked ? styles.supplyButtonUnblock : styles.supplyButtonBlock}
-                onPress={() => setIsSupplyBlocked(!isSupplyBlocked)}
+                style={valveState === 'BLOCKED' ? styles.supplyButtonUnblock : styles.supplyButtonBlock}
+                onPress={() => sendValveCommand(valveState === 'BLOCKED' ? 'OPEN' : 'BLOCKED')}
               >
-                <Text style={isSupplyBlocked ? styles.supplyButtonUnblockText : styles.supplyButtonBlockText}>
-                  {isSupplyBlocked ? 'Unblock Supply' : 'Block Supply'}
+                <Text style={valveState === 'BLOCKED' ? styles.supplyButtonUnblockText : styles.supplyButtonBlockText}>
+                  {valveState === 'BLOCKED' ? 'Unblock Supply' : 'Block Supply'}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Device Card 2 */}
+            {/* Device Card 2 (Secondary Mock) */}
             <View style={styles.gridCard}>
               <View style={styles.gridCardHeader}>
-                <Ionicons name={isSecondaryBlocked ? "flower-outline" : "flower"} size={26} color={isSecondaryBlocked ? '#EF4444' : Colors.primary} />
-                <View style={[styles.trendBadge, isSecondaryBlocked && { backgroundColor: '#FEF2F2' }]}>
-                  <Text style={[styles.trendTextPositive, isSecondaryBlocked && { color: '#EF4444' }]}>
-                    {isSecondaryBlocked ? 'Blocked' : 'Active'}
-                  </Text>
+                <Ionicons name="flower" size={26} color={Colors.primary} />
+                <View style={styles.trendBadge}>
+                  <Text style={styles.trendTextPositive}>Active</Text>
                 </View>
               </View>
               <Text style={styles.gridCardName}>Sprinkler</Text>
               <Text style={styles.gridCardSub}>Garden System</Text>
-              <TouchableOpacity
-                style={isSecondaryBlocked ? styles.supplyButtonUnblock : styles.supplyButtonBlock}
-                onPress={() => setIsSecondaryBlocked(!isSecondaryBlocked)}
-              >
-                <Text style={isSecondaryBlocked ? styles.supplyButtonUnblockText : styles.supplyButtonBlockText}>
-                  {isSecondaryBlocked ? 'Unblock Supply' : 'Block Supply'}
-                </Text>
+              <TouchableOpacity style={styles.supplyButtonBlock}>
+                <Text style={styles.supplyButtonBlockText}>Block Supply</Text>
               </TouchableOpacity>
             </View>
 
@@ -350,6 +368,7 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
