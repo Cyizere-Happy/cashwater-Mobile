@@ -11,4 +11,6 @@ export const endpoints = {
     register: `${API_URL}/auth/register`,
     registerDevice: `${API_URL}/devices/register`,
     myDevices: `${API_URL}/devices/my-devices`,
+    submitReport: `${API_URL}/reports`,
+    getReports: `${API_URL}/reports`,
 };

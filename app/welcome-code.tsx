@@ -3,8 +3,10 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAnimatedView } from '@/components/SafeAnimated';
+import { FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 export default function WelcomeCodeScreen() {
     const router = useRouter();
@@ -19,27 +21,27 @@ export default function WelcomeCodeScreen() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <Animated.View
-                        entering={FadeInUp.delay(200).duration(800)}
+                    <SafeAnimatedView
+                        entering={Platform.OS !== 'web' ? FadeInUp.delay(200).duration(800) : undefined}
                         style={styles.iconContainer}
                     >
                         <View style={styles.iconCircle}>
                             <Ionicons name="checkmark-circle" size={60} color={Colors.white} />
                         </View>
-                    </Animated.View>
+                    </SafeAnimatedView>
 
-                    <Animated.View
-                        entering={FadeInDown.delay(400).duration(800)}
+                    <SafeAnimatedView
+                        entering={Platform.OS !== 'web' ? FadeInDown.delay(400).duration(800) : undefined}
                         style={styles.textContainer}
                     >
                         <Text style={styles.title}>Welcome to CashWater</Text>
                         <Text style={styles.subtitle}>
                             Your device was scanned successfully! Use the connection code below to log in and monitor your daily consumption.
                         </Text>
-                    </Animated.View>
+                    </SafeAnimatedView>
 
-                    <Animated.View
-                        entering={FadeInDown.delay(600).duration(800)}
+                    <SafeAnimatedView
+                        entering={Platform.OS !== 'web' ? FadeInDown.delay(600).duration(800) : undefined}
                         style={styles.codeContainer}
                     >
                         <Text style={styles.codeLabel}>CONNECTION CODE</Text>
@@ -47,11 +49,11 @@ export default function WelcomeCodeScreen() {
                             <Text style={styles.codeText}>{deviceCode}</Text>
                         </View>
                         <Text style={styles.codeHint}>Save this code in a secure location.</Text>
-                    </Animated.View>
+                    </SafeAnimatedView>
                 </View>
 
-                <Animated.View
-                    entering={FadeInDown.delay(800).duration(800)}
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? FadeInDown.delay(800).duration(800) : undefined}
                     style={styles.footer}
                 >
                     <Button
@@ -68,7 +70,7 @@ export default function WelcomeCodeScreen() {
                         onPress={() => router.back()}
                         style={styles.secondaryButton}
                     />
-                </Animated.View>
+                </SafeAnimatedView>
             </SafeAreaView>
         </View>
     );

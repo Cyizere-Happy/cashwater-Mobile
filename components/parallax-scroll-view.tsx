@@ -1,5 +1,5 @@
 import type { PropsWithChildren, ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Platform, View, ScrollView } from 'react-native';
 import Animated, {
   interpolate,
   useAnimatedRef,
@@ -10,6 +10,7 @@ import Animated, {
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useThemeColor } from '@/hooks/use-theme-color';
+import { SafeAnimatedView, SafeAnimatedScrollView } from '@/components/SafeAnimated';
 
 const HEADER_HEIGHT = 250;
 
@@ -25,9 +26,15 @@ export default function ParallaxScrollView({
 }: Props) {
   const backgroundColor = useThemeColor({}, 'background');
   const colorScheme = useColorScheme() ?? 'light';
+  const isWeb = Platform.OS === 'web';
+
+  // Safely handle Reanimated hooks - they must still be called at top level
+  // but we can choose not to use their results on web.
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollOffset(scrollRef);
+
   const headerAnimatedStyle = useAnimatedStyle(() => {
+    if (isWeb) return {};
     return {
       transform: [
         {
@@ -44,21 +51,38 @@ export default function ParallaxScrollView({
     };
   });
 
+  if (isWeb) {
+    return (
+      <ScrollView
+        style={{ backgroundColor, flex: 1 }}
+        scrollEventThrottle={16}>
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: headerBackgroundColor[colorScheme] },
+          ]}>
+          {headerImage}
+        </View>
+        <ThemedView style={styles.content}>{children}</ThemedView>
+      </ScrollView>
+    );
+  }
+
   return (
-    <Animated.ScrollView
+    <SafeAnimatedScrollView
       ref={scrollRef}
       style={{ backgroundColor, flex: 1 }}
       scrollEventThrottle={16}>
-      <Animated.View
+      <SafeAnimatedView
         style={[
           styles.header,
           { backgroundColor: headerBackgroundColor[colorScheme] },
           headerAnimatedStyle,
         ]}>
         {headerImage}
-      </Animated.View>
+      </SafeAnimatedView>
       <ThemedView style={styles.content}>{children}</ThemedView>
-    </Animated.ScrollView>
+    </SafeAnimatedScrollView>
   );
 }
 

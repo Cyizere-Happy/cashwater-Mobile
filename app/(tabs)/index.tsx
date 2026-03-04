@@ -1,10 +1,17 @@
 import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Dimensions, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View, Platform, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BarChart } from 'react-native-gifted-charts';
+import * as Location from 'expo-location';
+import { endpoints } from '@/constants/api';
 
 const { width } = Dimensions.get('window');
+
+// Hardcoded device ID from AsyncStorage / registration flow
+// In a real app this comes from stored registration data
+const REGISTERED_DEVICE_ID = 'CW-DEMO01';
 
 export default function DashboardScreen() {
   const [activeTab, setActiveTab] = useState('Overview');
@@ -14,7 +21,6 @@ export default function DashboardScreen() {
   // Reporting Form State
   const [reportDescription, setReportDescription] = useState('');
   const [reportSeverity, setReportSeverity] = useState('MEDIUM');
-  const [reportLocation, setReportLocation] = useState('Home - Main System');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -117,7 +123,7 @@ export default function DashboardScreen() {
                 noOfSections={4}
                 maxValue={200}
                 frontColor={'#E8EEF5'}
-                isAnimated
+                isAnimated={Platform.OS !== 'web'}
               />
             </View>
           </View>
@@ -155,11 +161,19 @@ export default function DashboardScreen() {
 
         {activeTab === 'Report' && (
           <View style={styles.section}>
-            <Text style={styles.gridTitle}>Report a Problem</Text>
+            <Text style={styles.gridTitle}>Report a Leak</Text>
 
             {!showSuccess ? (
               <View style={styles.reportForm}>
-                <Text style={styles.inputLabel}>What is the issue?</Text>
+                {/* Info box */}
+                <View style={styles.reportInfoBox}>
+                  <Ionicons name="warning-outline" size={18} color="#F59E0B" />
+                  <Text style={styles.reportInfoText}>
+                    Reports are sent directly to WASAC administrators and include your current location.
+                  </Text>
+                </View>
+
+                <Text style={styles.inputLabel}>Severity Level</Text>
                 <View style={styles.severityPicker}>
                   {['LOW', 'MEDIUM', 'HIGH'].map((s) => (
                     <TouchableOpacity
@@ -178,31 +192,81 @@ export default function DashboardScreen() {
                   ))}
                 </View>
 
-                <Text style={styles.inputLabel}>Location</Text>
-                <View style={styles.inputWrapper}>
-                  <Ionicons name="location-outline" size={20} color="#888" style={styles.inputIcon} />
-                  <Text style={styles.inputText}>{reportLocation}</Text>
-                </View>
-
                 <Text style={styles.inputLabel}>Description</Text>
-                <View style={[styles.inputWrapper, { alignItems: 'flex-start', paddingTop: 12 }]}>
+                <View style={[styles.inputWrapper, { alignItems: 'flex-start', paddingTop: 12, minHeight: 100 }]}>
                   <Ionicons name="chatbubble-outline" size={20} color="#888" style={styles.inputIcon} />
-                  <Text style={[styles.inputText, !reportDescription && { color: '#AAA' }]}>
-                    {reportDescription || "Describe the leak or problem..."}
-                  </Text>
+                  <TextInput
+                    style={[styles.inputText, { flex: 1, textAlignVertical: 'top', minHeight: 70 }]}
+                    placeholder="Describe the leak or problem in detail..."
+                    placeholderTextColor="#AAA"
+                    value={reportDescription}
+                    onChangeText={setReportDescription}
+                    multiline
+                    numberOfLines={4}
+                  />
                 </View>
 
                 <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={() => {
+                  style={[styles.submitButton, (!reportDescription || isSubmitting) && { opacity: 0.7 }]}
+                  disabled={!reportDescription || isSubmitting}
+                  onPress={async () => {
+                    if (!reportDescription.trim()) {
+                      Alert.alert('Missing Info', 'Please describe the issue before submitting.');
+                      return;
+                    }
                     setIsSubmitting(true);
-                    setTimeout(() => {
+                    try {
+                      let latitude: number | undefined;
+                      let longitude: number | undefined;
+
+                      // Try to get GPS location
+                      const { status } = await Location.requestForegroundPermissionsAsync();
+                      if (status === 'granted') {
+                        const loc = await Location.getCurrentPositionAsync({
+                          accuracy: Location.Accuracy.Balanced,
+                        });
+                        latitude = loc.coords.latitude;
+                        longitude = loc.coords.longitude;
+                      }
+
+                      const payload = {
+                        deviceId: REGISTERED_DEVICE_ID,
+                        severity: reportSeverity,
+                        description: reportDescription,
+                        ...(latitude !== undefined ? { latitude } : {}),
+                        ...(longitude !== undefined ? { longitude } : {}),
+                      };
+
+                      const response = await fetch(endpoints.submitReport, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                      });
+
+                      if (response.ok) {
+                        setShowSuccess(true);
+                        setReportDescription('');
+                        setReportSeverity('MEDIUM');
+                      } else {
+                        const data = await response.json();
+                        Alert.alert('Submission Failed', data.message || 'Could not send report. Please try again.');
+                      }
+                    } catch (error) {
+                      // If backend is unavailable, still show success to user (offline-friendly)
+                      console.error('Report submission error:', error);
+                      Alert.alert(
+                        'Connection Issue',
+                        'Could not reach the server. Please check your network and try again.'
+                      );
+                    } finally {
                       setIsSubmitting(false);
-                      setShowSuccess(true);
-                    }, 1500);
+                    }
                   }}
                 >
-                  <Text style={styles.submitButtonText}>{isSubmitting ? 'Sending...' : 'Send Report to WASAC'}</Text>
+                  {isSubmitting
+                    ? <ActivityIndicator color="#FFF" size="small" />
+                    : <Text style={styles.submitButtonText}>Send Report to WASAC</Text>
+                  }
                 </TouchableOpacity>
               </View>
             ) : (
@@ -211,7 +275,7 @@ export default function DashboardScreen() {
                   <Ionicons name="checkmark-circle" size={50} color="#10B981" />
                 </View>
                 <Text style={styles.successTitle}>Report Sent Successfully</Text>
-                <Text style={styles.successDesc}>WASAC administrators have been notified. A technician will be dispatched if necessary.</Text>
+                <Text style={styles.successDesc}>WASAC administrators have been notified of the leak. A technician will be dispatched if necessary.</Text>
                 <TouchableOpacity
                   style={styles.backButton}
                   onPress={() => {
@@ -623,6 +687,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 3,
+  },
+  reportInfoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFBEB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 4,
+    alignItems: 'flex-start',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  reportInfoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 18,
   },
   inputLabel: {
     fontSize: 12,

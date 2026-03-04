@@ -5,9 +5,11 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import Animated, { FadeInUp, SlideInDown } from 'react-native-reanimated';
+import { SafeAnimatedView } from '@/components/SafeAnimated';
+import { FadeInUp, SlideInDown } from 'react-native-reanimated';
 import { endpoints } from '@/constants/api';
 
 export default function EnterCodeScreen() {
@@ -18,6 +20,7 @@ export default function EnterCodeScreen() {
     const [code, setCode] = useState(
         typeof params.prefilledCode === 'string' ? params.prefilledCode : ''
     );
+    const [deviceName, setDeviceName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleVerify = async () => {
@@ -26,31 +29,49 @@ export default function EnterCodeScreen() {
             return;
         }
 
+        let deviceId = code;
+        let deviceType = "RESIDENTIAL";
+
+        // Parse TOKEN|TYPE format if present
+        if (code.includes('|')) {
+            const [token, type] = code.split('|');
+            deviceId = token;
+            deviceType = type;
+        }
+
         setIsLoading(true);
         try {
             console.log('Requesting location permissions...');
             const { status } = await Location.requestForegroundPermissionsAsync();
 
-            let latitude, longitude;
+            let latitude, longitude, resolvedLocation = 'Unknown Location';
             if (status === 'granted') {
-                const loc = await Location.getCurrentPositionAsync({});
+                console.log('--- DIAGNOSTIC: Capturing location... ---');
+                // Use a shorter timeout to avoid hanging indefinitely
+                const loc = await Location.getCurrentPositionAsync({
+                    accuracy: Location.Accuracy.Balanced,
+                });
                 latitude = loc.coords.latitude;
                 longitude = loc.coords.longitude;
-                console.log('Location captured:', latitude, longitude);
+                console.log('--- DIAGNOSTIC: Location captured:', latitude, longitude, '---');
+
+                // Location resolution is now handled by the backend
+                resolvedLocation = 'Default';
             } else {
+                console.warn('--- DIAGNOSTIC: Location permission denied ---');
                 Alert.alert(
                     'Location Permission Denied',
-                    'We need your location to register the device to your current area. Please enable it in settings.'
+                    'We need your location to register the device to your current area.'
                 );
                 setIsLoading(false);
                 return;
             }
 
-            console.log('Registering device with code:', code);
-
+            console.log('--- DIAGNOSTIC: Building request payload... ---');
             // In a real app, you'd get the JWT token from storage
             const token = 'dummy_user_token';
 
+            console.log('--- DIAGNOSTIC: Sending registration request to:', endpoints.registerDevice, '---');
             const response = await fetch(endpoints.registerDevice, {
                 method: 'POST',
                 headers: {
@@ -58,19 +79,30 @@ export default function EnterCodeScreen() {
                     'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    deviceId: code,
-                    name: 'My Smart Meter',
-                    location: 'Home',
+                    deviceId: deviceId,
+                    name: deviceName || (deviceType === 'RESIDENTIAL' ? 'Home Meter' : deviceType === 'COMMERCIAL' ? 'Shop Meter' : 'Industrial Meter'),
+                    location: resolvedLocation,
                     latitude,
-                    longitude
+                    longitude,
+                    type: deviceType
                 }),
             });
+            console.log('--- DIAGNOSTIC: Response received status:', response.status, '---');
 
             const data = await response.json();
 
             if (response.ok) {
-                Alert.alert('Success', 'Device connected successfully!');
-                router.replace('/(tabs)');
+                console.log('--- DIAGNOSTIC: Registration successful, navigating to dashboard ---');
+                // Use a small delay for Web to ensure state is settled before navigation
+                if (Platform.OS === 'web') {
+                    router.replace('/(tabs)');
+                } else {
+                    Alert.alert(
+                        'Registration Successful',
+                        `Device ${deviceId} has been successfully registered as a ${deviceType} property.`,
+                        [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+                    );
+                }
             } else {
                 Alert.alert('Registration Failed', data.message || 'Could not register device');
             }
@@ -87,7 +119,10 @@ export default function EnterCodeScreen() {
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
                 {/* Compact Header */}
-                <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.header}>
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? FadeInUp.delay(200).duration(800) : undefined}
+                    style={styles.header}
+                >
                     <TouchableOpacity onPress={() => router.back()} style={styles.iconButton}>
                         <Ionicons name="arrow-back" size={24} color={Colors.white} />
                     </TouchableOpacity>
@@ -98,10 +133,13 @@ export default function EnterCodeScreen() {
                             Enter the code from your embedded system.
                         </Text>
                     </View>
-                </Animated.View>
+                </SafeAnimatedView>
 
                 {/* Content Card */}
-                <Animated.View entering={SlideInDown.delay(400).duration(800).springify()} style={styles.contentCard}>
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? SlideInDown.delay(400).duration(800).springify() : undefined}
+                    style={styles.contentCard}
+                >
                     <View style={styles.form}>
                         <View style={styles.infoBox}>
                             <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
@@ -109,6 +147,12 @@ export default function EnterCodeScreen() {
                                 The code can be found on the sticker or the digital display of your device.
                             </Text>
                         </View>
+
+                        <Input
+                            placeholder="Device Nickname (e.g. Home, Kitchen)"
+                            value={deviceName}
+                            onChangeText={setDeviceName}
+                        />
 
                         <Input
                             placeholder="Device Code (e.g. CW-12345)"
@@ -125,7 +169,7 @@ export default function EnterCodeScreen() {
                         />
                         {isLoading && <ActivityIndicator style={{ marginTop: 20 }} color={Colors.primary} />}
                     </View>
-                </Animated.View>
+                </SafeAnimatedView>
             </SafeAreaView>
         </View>
     );

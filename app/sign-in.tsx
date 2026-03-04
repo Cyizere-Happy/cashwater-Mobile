@@ -5,8 +5,10 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { Platform, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
-import Animated, { FadeInUp, SlideInDown } from 'react-native-reanimated';
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAnimatedView } from '@/components/SafeAnimated';
+import { FadeInUp, SlideInDown } from 'react-native-reanimated';
 import { endpoints } from '@/constants/api';
 
 export default function SignInScreen() {
@@ -50,7 +52,10 @@ export default function SignInScreen() {
     return (
         <View style={styles.container}>
             <SafeAreaView style={styles.safeArea}>
-                <Animated.View entering={FadeInUp.delay(200).duration(800)} style={styles.header}>
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? FadeInUp.delay(200).duration(800) : undefined}
+                    style={styles.header}
+                >
                     <View style={styles.headerTop}>
                         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                             <Ionicons name="arrow-back" size={24} color={Colors.white} />
@@ -66,10 +71,13 @@ export default function SignInScreen() {
                             Manage your water system securely.
                         </Text>
                     </View>
-                </Animated.View>
+                </SafeAnimatedView>
 
                 {/* Content Card */}
-                <Animated.View entering={SlideInDown.delay(400).duration(800).springify()} style={styles.contentCard}>
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? SlideInDown.delay(400).duration(800).springify() : undefined}
+                    style={styles.contentCard}
+                >
                     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                         <View style={styles.form}>
                             <Input
@@ -112,7 +120,7 @@ export default function SignInScreen() {
                             </View>
                         </View>
                     </ScrollView>
-                </Animated.View>
+                </SafeAnimatedView>
             </SafeAreaView>
         </View>
     );

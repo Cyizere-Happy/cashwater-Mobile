@@ -4,8 +4,9 @@ import { Colors } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Dimensions, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, SlideInDown } from 'react-native-reanimated';
+import { Dimensions, StyleSheet, Text, View, Platform } from 'react-native';
+import { SafeAnimatedView } from '@/components/SafeAnimated';
+import { FadeInDown, SlideInDown } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
@@ -24,18 +25,24 @@ export default function WelcomeScreen() {
         <View style={styles.container}>
             {/* Top Section - Enhanced Logo */}
             <View style={styles.topSection}>
-                <Animated.View entering={FadeInDown.duration(1000)} style={styles.logoWrapper}>
+                <SafeAnimatedView
+                    entering={Platform.OS !== 'web' ? FadeInDown.duration(1000) : undefined}
+                    style={styles.logoWrapper}
+                >
                     <View style={styles.iconCircleSmall}>
                         <Ionicons name="water" size={32} color={Colors.white} />
                     </View>
                     <Text style={styles.logoText}>
                         Cash<Text style={styles.logoTextBold}>Water</Text>
                     </Text>
-                </Animated.View>
+                </SafeAnimatedView>
             </View>
 
             {/* Bottom Section - Card */}
-            <Animated.View entering={SlideInDown.delay(300).duration(800).springify()} style={styles.bottomSection}>
+            <SafeAnimatedView
+                entering={Platform.OS !== 'web' ? SlideInDown.delay(300).duration(800).springify() : undefined}
+                style={styles.bottomSection}
+            >
                 <Text style={styles.welcomeText}>Welcome</Text>
                 <Text style={styles.descriptionText}>
                     Monitor your water usage in real time and remotely control the system.
@@ -55,7 +62,7 @@ export default function WelcomeScreen() {
                         style={styles.button}
                     />
                 </View>
-            </Animated.View>
+            </SafeAnimatedView>
         </View>
     );
 }
